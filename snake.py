@@ -1,15 +1,22 @@
 import os
 import sys
 import pygame
+import random
 
 # предигровые настройки, фпс и название уровня
 FPS = int(input('Введите FPS (скорость змейки, 2 - средняя): '))
-filename = 'data/' + input('Введите название уровня: ') + '.txt'
+filename = 'data/' + input('Введите название уровня (1-5): ') + '.txt'
 pygame.display.set_caption('Перемещение героя')
 with open(filename, 'r') as mapFile:
     level_map = [line.strip() for line in mapFile]
     max_width = max(map(len, level_map))
     WIDTH, HEIGHT = max_width * 25, len(level_map) * 25
+
+
+def close():  # выход из игры
+    print("Игра окончена!!!")
+    pygame.quit()
+    sys.exit()
 
 
 def load_level(filename):  # загрузка уровня через текстовой документ
@@ -21,7 +28,7 @@ def load_level(filename):  # загрузка уровня через текст
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
-def load_image(name, colorkey=None):  # загрузка изображения
+def load_image(name):  # загрузка изображения
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -30,27 +37,57 @@ def load_image(name, colorkey=None):  # загрузка изображения
     return image
 
 
+def random_apple(level):
+    le = []
+    for y in range(len(level)):
+        for x in range(len(level[y])):
+            if level[y][x] == '.':
+                le.append([x, y])
+    return random.choice(le)
+
+
 # спрайты и изображения
 clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
+border_group = pygame.sprite.Group()
+grass_group = pygame.sprite.Group()
 snake_group = pygame.sprite.Group()
+apple_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
-tile_images = {
-    'wall': load_image('wall.png'),
-    'empty': load_image('grass.png')
-}
+apple_image = load_image('apple.png')
+border_image = load_image('wall.png')
+grass_image = load_image('grass.png')
 head_image = load_image('head.png')
 player_image = load_image('body.png')
 tile_width = tile_height = 25
 
 
-class Tile(pygame.sprite.Sprite):  # блоки, стены, недвижимые объекты
-    def __init__(self, tile_type, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
-        self.image = tile_images[tile_type]
+class Border(pygame.sprite.Sprite):  # блоки, стены, недвижимые объекты
+    def __init__(self, pos_x, pos_y):
+        super().__init__(border_group, all_sprites)
+        self.image = border_image
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
+
+
+class Grass(pygame.sprite.Sprite):  # трава, пустое пространство
+    def __init__(self, pos_x, pos_y):
+        super().__init__(grass_group, all_sprites)
+        self.image = grass_image
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x, tile_height * pos_y)
+
+
+class Apple(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(apple_group, all_sprites)
+        self.image = apple_image
+        self.rect = self.image.get_rect().move(
+            tile_width * pos_x, tile_height * pos_y)
+
+    def update(self, x, y):
+        self.rect = self.image.get_rect().move(
+            tile_width * x, tile_height * y)
 
 
 class Head(pygame.sprite.Sprite):  # голова змеи
@@ -84,6 +121,16 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             return coords[0], coords[1] + 25
 
     def move(self):  # меняет координаты всех частей змеи (в том числе и головы)
+        f = False
+        if pygame.sprite.spritecollideany(self, border_group) and \
+                pygame.sprite.spritecollideany(self, snake_group):
+            close()
+        elif pygame.sprite.spritecollideany(self, apple_group):
+            Grass(self.head[0], self.head[1])
+            f = True
+            position = random_apple(load_level(filename))
+            apple_group.update(position[0], position[1])
+
         copy = []
         for i in self.snake:
             copy.append(i)
@@ -93,6 +140,10 @@ class Head(pygame.sprite.Sprite):  # голова змеи
                 self.head = copy[0]
             else:
                 copy[i] = self.snake[i - 1]
+        if self.head in copy[1:]:
+            close()
+        if f:
+            copy.append(self.snake[-1])
         self.snake = copy
 
     def render(self):  # визуальный рендер змеи
@@ -113,13 +164,12 @@ class Body(pygame.sprite.Sprite):  # кусочки тела змеи
 
 
 def generate_level(level):  # генерация уровня через .txt
-    new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
-                Tile('empty', x, y)
+                Grass(x, y)
             elif level[y][x] == '#':
-                Tile('wall', x, y)
+                Border(x, y)
 
 
 if __name__ == '__main__':  # основная программа
@@ -129,12 +179,16 @@ if __name__ == '__main__':  # основная программа
     prev = 'left'  # чтобы змея не могла резко поворачиваться на 180 градусов и ломать программу
     screen = pygame.display.set_mode(size)
     generate_level(load_level(filename))
+    pos = random_apple(load_level(filename))
+    Apple(pos[0], pos[1])
     snake = Head([(150, 150), (125, 150), (100, 150)])  # здесь задается начальное кол-во частей тела и их координаты
     running = True
     counter = 20 // FPS  # для стабильной работы поворотов и в целом самой игры я сделал такой подход к ФПС
     all_sprites.draw(screen)  # отрисовка спрайтов для начала игры
     snake_group.draw(screen)
-    tiles_group.draw(screen)
+    grass_group.draw(screen)
+    border_group.draw(screen)
+    apple_group.draw(screen)
     snake.set_direction('right')
     while running:
         for event in pygame.event.get():
@@ -163,8 +217,10 @@ if __name__ == '__main__':  # основная программа
             snake.move()
             snake.render()
             all_sprites.draw(screen)
-            tiles_group.draw(screen)
+            border_group.draw(screen)
+            grass_group.draw(screen)
             snake_group.draw(screen)
+            apple_group.draw(screen)
             player_group.draw(screen)
             pygame.display.flip()
             player_group.empty()
