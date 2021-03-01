@@ -158,6 +158,9 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             Grass(self.head[0], self.head[1])
             f = True
             position = random_apple(load_level(filename))
+            timu = [i[:2] for i in self.snake]
+            while (position[0] * 50, position[1] * 50) in timu:
+                position = random_apple(load_level(filename))
             apple_group.update(position[0], position[1])
         elif pygame.sprite.spritecollideany(self, snake_group) and \
                 pygame.sprite.spritecollideany(self, player_group):
