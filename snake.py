@@ -69,6 +69,14 @@ tail_image_right = load_image('tail_right.png')
 tail_image_left = load_image('tail_left.png')
 tail_image_up = load_image('tail_up.png')
 tail_image_down = load_image('tail_down.png')
+rotate_up_right = load_image('rotate_up_right.png')
+rotate_up_left = load_image('rotate_up_left.png')
+rotate_right_down = load_image('rotate_right_down.png')
+rotate_right_up = load_image('rotate_right_up.png')
+rotate_down_right = load_image('rotate_down_right.png')
+rotate_down_left = load_image('rotate_down_left.png')
+rotate_left_down = load_image('rotate_left_down.png')
+rotate_left_up = load_image('rotate_left_up.png')
 player_image = load_image('body.png')
 tile_width = tile_height = 50
 
@@ -110,26 +118,35 @@ class Head(pygame.sprite.Sprite):  # голова змеи
         self.image = self.head_photo(self.head[2])
         self.rect = self.image.get_rect().move(
             self.head[0], self.head[1])
-        self.direction = 1, 0
+        self.direction = 'right', 'none'
+        self.underdir = 'none', 'none'
 
     def set_direction(self, stroke):  # выбор направления
         if stroke == 'up':
-            self.direction = 0, 1
+            self.underdir = [(self.direction[0], 'up')]
+            self.direction = 'none', 'up'
+            self.useless = True
         elif stroke == 'down':
-            self.direction = 0, -1
+            self.underdir = [(self.direction[0], 'down')]
+            self.direction = 'none', 'down'
+            self.useless = True
         elif stroke == 'left':
-            self.direction = -1, 0
+            self.underdir = [('left', self.direction[1])]
+            self.direction = 'left', 'none'
+            self.useless = True
         elif stroke == 'right':
-            self.direction = 1, 0
+            self.underdir = [('right', self.direction[1])]
+            self.direction = 'right', 'none'
+            self.useless = True
 
     def directions(self, coords):  # меняет координаты головы в зависимости от направления
-        if self.direction[0] == 1:
+        if self.direction[0] == 'right':
             return coords[0] + 50, coords[1]
-        elif self.direction[0] == -1:
+        elif self.direction[0] == 'left':
             return coords[0] - 50, coords[1]
-        elif self.direction[1] == 1:
+        elif self.direction[1] == 'up':
             return coords[0], coords[1] - 50
-        elif self.direction[1] == -1:
+        elif self.direction[1] == 'down':
             return coords[0], coords[1] + 50
 
     def move(self):  # меняет координаты всех частей змеи (в том числе и головы)
@@ -152,6 +169,9 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             if not i:
                 copy[i] = (self.directions(self.snake[i])[0], self.directions(self.snake[i])[1], self.direction)
                 self.head = copy[0]
+            elif self.useless:
+                self.useless = False
+                copy[i] = self.snake[i - 1][:2] + tuple(self.underdir)
             else:
                 copy[i] = self.snake[i - 1]
         if self.head in copy[1:]:
@@ -165,15 +185,16 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             copy.append(i[:2])
         if self.head[:2] in copy:
             close()
+        print(self.snake)
 
     def head_photo(self, direction):
-        if direction == (0, 1):
+        if direction == ('none', 'up'):
             return head_image_up
-        if direction == (0, -1):
+        if direction == ('none', 'down'):
             return head_image_down
-        if direction == (1, 0):
+        if direction == ('right', 'none'):
             return head_image_right
-        if direction == (-1, 0):
+        if direction == ('left', 'none'):
             return head_image_left
 
     def render(self):  # визуальный рендер змеи
@@ -192,22 +213,39 @@ class Head(pygame.sprite.Sprite):  # голова змеи
 class Body(pygame.sprite.Sprite):  # кусочки тела змеи
     def __init__(self, rect, direction, name):
         super().__init__(player_group, all_sprites)
-        if direction == (0, 1) and name == 's':
+        print(direction, name)
+        if direction == ('none', 'up') and name == 's':
             self.image = tail_image_up
-        elif direction == (1, 0) and name == 's':
+        elif direction == ('right', 'none') and name == 's':
             self.image = tail_image_right
-        elif direction == (0, -1) and name == 's':
+        elif direction == ('none', 'down') and name == 's':
             self.image = tail_image_down
-        elif direction == (-1, 0) and name == 's':
+        elif direction == ('left', 'none') and name == 's':
             self.image = tail_image_left
-        elif direction == (0, 1):
+        elif direction == ('none', 'up'):
             self.image = body_image_up
-        elif direction == (1, 0):
+        elif direction == ('right', 'none'):
             self.image = body_image_right
-        elif direction == (0, -1):
+        elif direction == ('none', 'down'):
             self.image = body_image_down
-        elif direction == (-1, 0):
+        elif direction == ('left', 'none'):
             self.image = body_image_left
+        elif direction == ('up', 'right'):
+            self.image = rotate_up_right
+        elif direction == ('up', 'left'):
+            self.image = rotate_up_left
+        elif direction == ('left', 'up'):
+            self.image = rotate_left_up
+        elif direction == ('left', 'down'):
+            self.image = rotate_left_down
+        elif direction == ('down', 'left'):
+            self.image = rotate_down_left
+        elif direction == ('down', 'right'):
+            self.image = rotate_down_right
+        elif direction == ('right', 'up'):
+            self.image = rotate_right_up
+        elif direction == ('right', 'down'):
+            self.image = rotate_right_down
         self.rect = rect
 
 
@@ -229,7 +267,7 @@ if __name__ == '__main__':  # основная программа
     generate_level(load_level(filename))
     pos = random_apple(load_level(filename))
     Apple(pos[0], pos[1])
-    snake = Head([(150, 150, (0, 1)), (125, 150, (0, 1)), (100, 150, (0, 1))])
+    snake = Head([(300, 300, ('none', 'up')), (250, 300, ('none', 'up')), (200, 300, ('none', 'up'))])
     running = True
     action_happened = False
     counter = 20 // FPS  # для стабильной работы поворотов и в целом самой игры я сделал такой подход к ФПС
