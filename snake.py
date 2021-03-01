@@ -142,7 +142,9 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             f = True
             position = random_apple(load_level(filename))
             apple_group.update(position[0], position[1])
-
+        elif pygame.sprite.spritecollideany(self, snake_group) and \
+                pygame.sprite.spritecollideany(self, player_group):
+            close()
         copy = []
         for i in self.snake:
             copy.append(i)
@@ -158,6 +160,11 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             copy.append(self.snake[-1])
         self.snake = copy
         self.tail = self.snake[-1]
+        copy = []
+        for i in self.snake[1:]:
+            copy.append(i[:2])
+        if self.head[:2] in copy:
+            close()
 
     def head_photo(self, direction):
         if direction == (0, 1):
@@ -176,30 +183,24 @@ class Head(pygame.sprite.Sprite):  # голова змеи
         for i in self.snake:
             if i != self.head and i != self.tail:
                 Body(player_image.get_rect().move(
-                    i[0], i[1]), i[2])
+                    i[0], i[1]), i[2], 'b')
             elif i == self.tail:
-                Tail(player_image.get_rect().move(
-                    i[0], i[1]), i[2])
-
-
-class Tail(pygame.sprite.Sprite):  # кусочки тела змеи
-    def __init__(self, rect, direction):
-        super().__init__(player_group, all_sprites)
-        if direction == (0, 1):
-            self.image = tail_image_up
-        elif direction == (1, 0):
-            self.image = tail_image_right
-        elif direction == (0, -1):
-            self.image = tail_image_down
-        elif direction == (-1, 0):
-            self.image = tail_image_left
-        self.rect = rect
+                Body(player_image.get_rect().move(
+                    i[0], i[1]), i[2], 's')
 
 
 class Body(pygame.sprite.Sprite):  # кусочки тела змеи
-    def __init__(self, rect, direction):
+    def __init__(self, rect, direction, name):
         super().__init__(player_group, all_sprites)
-        if direction == (0, 1):
+        if direction == (0, 1) and name == 's':
+            self.image = tail_image_up
+        elif direction == (1, 0) and name == 's':
+            self.image = tail_image_right
+        elif direction == (0, -1) and name == 's':
+            self.image = tail_image_down
+        elif direction == (-1, 0) and name == 's':
+            self.image = tail_image_left
+        elif direction == (0, 1):
             self.image = body_image_up
         elif direction == (1, 0):
             self.image = body_image_right
@@ -265,6 +266,7 @@ if __name__ == '__main__':  # основная программа
                         prev = 'down'
         clock.tick(20)
         if counter == 20 // FPS:  # при каждом значении FPS что-то будет происходить
+            player_group.empty()
             action_happened = False
             counter = 0
             snake.move()
@@ -276,6 +278,5 @@ if __name__ == '__main__':  # основная программа
             apple_group.draw(screen)
             player_group.draw(screen)
             pygame.display.flip()
-            player_group.empty()
         counter += 1
     pygame.quit()
