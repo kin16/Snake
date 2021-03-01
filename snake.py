@@ -131,11 +131,11 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             self.direction = 'none', 'down'
             self.useless = True
         elif stroke == 'left':
-            self.underdir = [('left', self.direction[1])]
+            self.underdir = [(self.direction[1], 'left')]
             self.direction = 'left', 'none'
             self.useless = True
         elif stroke == 'right':
-            self.underdir = [('right', self.direction[1])]
+            self.underdir = [(self.direction[1], 'right')]
             self.direction = 'right', 'none'
             self.useless = True
 
@@ -185,7 +185,6 @@ class Head(pygame.sprite.Sprite):  # голова змеи
             copy.append(i[:2])
         if self.head[:2] in copy:
             close()
-        print(self.snake)
 
     def head_photo(self, direction):
         if direction == ('none', 'up'):
@@ -213,22 +212,21 @@ class Head(pygame.sprite.Sprite):  # голова змеи
 class Body(pygame.sprite.Sprite):  # кусочки тела змеи
     def __init__(self, rect, direction, name):
         super().__init__(player_group, all_sprites)
-        print(direction, name)
-        if direction == ('none', 'up') and name == 's':
+        if (direction == ('none', 'up') or direction == ('up', 'none')) and name == 's':
             self.image = tail_image_up
-        elif direction == ('right', 'none') and name == 's':
+        elif (direction == ('right', 'none') or direction == ('none', 'right')) and name == 's':
             self.image = tail_image_right
-        elif direction == ('none', 'down') and name == 's':
+        elif (direction == ('none', 'down') or direction == ('down', 'none')) and name == 's':
             self.image = tail_image_down
-        elif direction == ('left', 'none') and name == 's':
+        elif (direction == ('left', 'none') or direction == ('none', 'left')) and name == 's':
             self.image = tail_image_left
-        elif direction == ('none', 'up'):
+        elif direction == ('none', 'up') or direction == ('up', 'none'):
             self.image = body_image_up
-        elif direction == ('right', 'none'):
+        elif direction == ('right', 'none') or direction == ('none', 'right'):
             self.image = body_image_right
-        elif direction == ('none', 'down'):
+        elif direction == ('none', 'down') or direction == ('down', 'none'):
             self.image = body_image_down
-        elif direction == ('left', 'none'):
+        elif direction == ('left', 'none') or direction == ('none', 'left'):
             self.image = body_image_left
         elif direction == ('up', 'right'):
             self.image = rotate_up_right
